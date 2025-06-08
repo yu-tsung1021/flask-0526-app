@@ -244,8 +244,23 @@ h1 {
     padding-right: 40px;
     border-bottom: 1px solid #111010;
     vertical-align: middle;
-    white-space: nowrap; /* 讓字體橫向排列，不換行 */
-    text-align: left; /* 全部欄位統一向左對齊 */
+    white-space: nowrap;
+    text-align: left;
+}
+/* 新增：讓首頁菜單分隔線延伸到底 */
+#item-list tr {
+    display: table-row;
+}
+#item-list td {
+    border-bottom: 1px solid #111010;
+    /* 讓分隔線延伸到底 */
+    width: 1%;
+}
+#item-list td:last-child {
+    width: auto;
+}
+#item-list tr:last-child td {
+    border-bottom: none;
 }
 .menu-table th.menu-name, .menu-table td.menu-name,
 .menu-table th.menu-price, .menu-table td.menu-price,

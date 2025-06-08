@@ -72,6 +72,14 @@
         </tbody>
     </table>
     <script>
+    // 勾選餐點時自動檢查是否全部完成，若全部完成且無結帳按鈕則自動刪除該筆訂單列
+    function checkAndRemoveOrderRow(tr) {
+        const allChecked = Array.from(tr.querySelectorAll('.item-done-checkbox')).every(cb => cb.checked);
+        const checkoutBtn = tr.querySelector('.checkout-btn');
+        if (allChecked && (!checkoutBtn || checkoutBtn.style.display === 'none')) {
+            tr.remove();
+        }
+    }
     function toggleDone(checkbox) {
         const content = checkbox.nextElementSibling;
         if (checkbox.checked) {
@@ -81,6 +89,9 @@
             content.style.textDecoration = '';
             content.style.color = '';
         }
+        // 檢查是否要自動刪除
+        const tr = checkbox.closest('tr');
+        checkAndRemoveOrderRow(tr);
     }
     // 彈出/關閉明細表
     function toggleDetail(orderId) {
@@ -137,7 +148,36 @@
                     const price = li.querySelector('.item-content span').textContent.replace('$','');
                     items.push({ name, price });
                 });
-                sendBill(orderId, tableNumber, items);
+                // 隱藏主表格的結帳按鈕（需在 reload 前執行）
+                const checkoutBtn = tr.querySelector('.checkout-btn');
+                if (checkoutBtn) checkoutBtn.style.display = 'none';
+                // 關閉明細
+                closeDetail(orderId);
+                // 傳送帳單，成功後不 reload
+                const staffCode = '{{ staff_code }}';
+                const now = new Date();
+                const timeStr = now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0') + ' ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+                fetch('/api/bill', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({
+                        table_number: tableNumber,
+                        items: items,
+                        staff_code: staffCode,
+                        checkout_time: timeStr
+                    })
+                }).then(res => res.json()).then(data => {
+                    if (!data.success) {
+                        alert('傳送帳單失敗');
+                        if (checkoutBtn) checkoutBtn.style.display = '';
+                    } else {
+                        // 結帳後檢查是否要自動刪除該筆訂單列
+                        checkAndRemoveOrderRow(tr);
+                    }
+                }).catch(() => {
+                    alert('傳送帳單失敗');
+                    if (checkoutBtn) checkoutBtn.style.display = '';
+                });
             };
         }
     });
