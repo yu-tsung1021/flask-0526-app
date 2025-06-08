@@ -1,0 +1,307 @@
+body {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    min-height: 100vh;
+    margin: 0;
+    background: #7d8ba7;
+}
+
+h1 {
+    margin-top: 40px;
+    text-align: center;
+}
+
+#item-list {
+    display: flex;
+    flex-wrap: wrap;
+    justify-content: center;
+    gap: 24px;
+    padding: 0;
+    margin: 32px 0;
+    width: 90%;
+    max-width: 1200px;
+    list-style: none;
+}
+
+.card {
+    background: #95c2db;
+    border-radius: 12px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+    padding: 24px 16px;
+    width: 220px;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    transition: box-shadow 0.2s;
+}
+
+.card:hover {
+    box-shadow: 0 4px 16px rgba(0,0,0,0.15);
+}
+
+.card-title {
+    font-size: 1.2em;
+    font-weight: bold;
+    margin-bottom: 12px;
+}
+
+.card-price {
+    color: #000000;
+    font-size: 1.1em;
+    margin-bottom: 16px;
+}
+
+#cart-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 24px;
+    max-height: 400px;
+    overflow-y: auto;
+    margin: 0 auto 24px auto;
+    width: 90%;
+    max-width: 600px;
+    padding: 0;
+    list-style: none;
+    justify-content: center;
+}
+
+#cart-list .card {
+    width: 260px; /* 兩個一排，含 gap 剛好 */
+    margin: 0;
+}
+.card-remove-btn {
+    position: absolute;
+    top: 8px;
+    right: 12px;
+    background: transparent;
+    border: none;
+    color: #e74c3c;
+    font-size: 1.3em;
+    cursor: pointer;
+    z-index: 10;
+    padding: 0;
+    line-height: 1;
+}
+#cart-list .card {
+    position: relative; /* 讓小x定位在card右上 */
+}
+.card-btn {
+    background-color: #608ba2;
+    color: #130e0e;
+    border: none;
+    border-radius: 6px;
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 1em;
+    transition: background 0.2s;
+}
+
+.card-btn:hover {
+    background: #217dbb;
+}
+.cart-btn-container {
+    position: fixed;
+    top: 24px;
+    right: 32px;
+    z-index: 1000;
+    background: none;
+}
+.login-btn-container {
+    position: fixed;
+    top: 24px;
+    left: 32px;
+    z-index: 1000;
+    background: none;
+}
+.login-container {
+    max-width: 340px;
+    margin: 80px auto;
+    padding: 32px 24px;
+    background: #fff;
+    border-radius: 12px;
+    box-shadow: 0 2px 16px #0001;
+    text-align: center;
+}
+.login-container input {
+    width: 90%;
+    padding: 8px;
+    margin: 12px 0;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    font-size: 1em;
+}
+.login-container button {
+    width: 100%;
+    margin-top: 16px;
+}
+.boss-register-btn {
+    position: fixed;
+    top: 70px; /* 往下移動避免與登出重疊 */
+    right: 32px;
+    z-index: 1000;
+    background: #3498db;
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 20px;
+    font-size: 1em;
+    cursor: pointer;
+    transition: background 0.2s;
+}
+.boss-register-btn:hover {
+    background: #217dbb;
+}
+.staff-list {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px;
+    margin: 24px 0;
+    padding: 0;
+    list-style: none;
+    justify-content: center;
+}
+.staff-card {
+    background: #fff;
+    border-radius: 10px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.10);
+    padding: 18px 24px;
+    min-width: 180px;
+    margin: 0;
+    font-size: 1.05em;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-start;
+    transition: box-shadow 0.2s;
+}
+.staff-card:not(:last-child) {
+    margin-right: 0;
+}
+.logout-btn-container {
+    position: fixed;
+    top: 24px;
+    right: 32px;
+    z-index: 1000;
+    background: none;
+}
+.modal {
+    display: flex;
+    position: fixed;
+    z-index: 2000;
+    left: 0; top: 0; width: 100vw; height: 100vh;
+    background: rgba(0,0,0,0.3);
+    justify-content: center;
+    align-items: center;
+}
+.modal-content {
+    background: #fff;
+    border-radius: 12px;
+    padding: 32px 24px 24px 24px;
+    min-width: 260px;
+    max-width: 340px;
+    width: 90vw;
+    box-shadow: 0 4px 24px #0002;
+    position: relative;
+    text-align: center;
+}
+.close {
+    position: absolute;
+    top: 12px;
+    right: 18px;
+    font-size: 1.5em;
+    color: #888;
+    cursor: pointer;
+}
+#option-checkboxes label {
+    margin: 8px 0;
+    font-size: 1em;
+    display: block;
+    text-align: left;
+}
+#option-note {
+    margin-top: 12px;
+    border-radius: 6px;
+    border: 1px solid #ccc;
+    padding: 6px 10px;
+    font-size: 1em;
+}
+.menu-table {
+    width: 56vw;
+    max-width: 400px;
+    min-width: 240px;
+    margin: 40px auto 0 auto;
+    border-radius: 12px;
+    box-shadow: 0 4px 24px #0002;
+    border-collapse: collapse;
+    font-size: 1.1em;
+    overflow: hidden;
+    table-layout: auto;
+}
+.menu-table th, .menu-table td {
+    padding-top: 18px;
+    padding-bottom: 18px;
+    padding-left: 60px;
+    padding-right: 40px;
+    border-bottom: 1px solid #111010;
+    vertical-align: middle;
+    white-space: nowrap; /* 讓字體橫向排列，不換行 */
+    text-align: left; /* 全部欄位統一向左對齊 */
+}
+.menu-table th.menu-name, .menu-table td.menu-name,
+.menu-table th.menu-price, .menu-table td.menu-price,
+.menu-table th.menu-plus, .menu-table td.menu-plus {
+    text-align: left;
+    /* 不再額外設定 padding，全部欄位間距一致 */
+}
+.menu-table th.menu-price, .menu-table td.menu-price {
+    text-align: right;
+    color: #191512;
+    font-weight: bold;
+    font-size: 1.1em;
+    vertical-align: middle;
+}
+.menu-table td.menu-price {
+    text-align: right;
+    color: #191512;
+    font-weight: normal;
+    font-size: 1em;
+    line-height: 1.7;
+    vertical-align: middle;
+    /* 讓 $ 垂直置中 */
+}
+.menu-table th.menu-plus, .menu-table td.menu-plus {
+    /* 移除 text-align: right 與 padding-right，全部左對齊 */
+    width: 10%;
+    padding-right: 24px;
+    vertical-align: middle;
+}
+.menu-table td.menu-plus {
+    position: relative;
+}
+.menu-plus-btn {
+    background: none;
+    color: #0c0b0b;
+    border: none;
+    border-radius: 50%;
+    width: 36px;
+    height: 36px;
+    font-size: 1.3em;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: background 0.2s;
+    margin-left: 0;
+    margin-right: 0;
+}
+.menu-plus-btn:hover {
+    color: #f7f7f7;
+    background: none;
+}
+@media (max-width: 700px) {
+    .menu-table { font-size: 1em; }
+    .menu-table th, .menu-table td { padding: 10px 4px; }
+    .menu-table th.menu-name, .menu-table td.menu-name { padding-left: 10px; }
+    .menu-table th.menu-price, .menu-table td.menu-price { padding-right: 10px; }
+    .menu-table th.menu-plus, .menu-table td.menu-plus { padding-right: 6px; }
+}

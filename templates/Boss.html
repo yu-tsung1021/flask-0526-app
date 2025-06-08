@@ -1,0 +1,45 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>老闆後台</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="logout-btn-container">
+        <button onclick="location.href='/'" class="card-btn">登出</button>
+    </div>
+    <button class="boss-register-btn" onclick="location.href='/Boss-register'">註冊新員工</button>
+    <button class="boss-register-btn" style="top:120px;background:#2ecc40;right:32px;" onclick="location.href='/bills'">查看帳單</button>
+    <h1>歡迎老闆 Tsung！</h1>
+    <p>這裡是後台管理頁面。</p>
+    {% if staffs %}
+    <h2>員工名單</h2>
+    <ul class="staff-list">
+        {% for staff in staffs %}
+        <li class="staff-card">
+            <button class="card-btn" onclick="deleteStaff('{{ staff.username }}')" style="margin-left:8px;">註銷員工</button>
+            員工代碼:{{ staff.username }}（密碼：{{ staff.password }}）
+        </li>
+        {% endfor %}
+    </ul>
+    {% endif %}
+    <script>
+    function deleteStaff(username) {
+        if (!confirm('確定要註銷員工 ' + username + ' 嗎？')) return;
+        fetch('/api/staff/' + encodeURIComponent(username), {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                window.location.href = '/staff-login-success'; // 跳回老闆頁面並刷新
+            } else {
+                alert('刪除失敗：' + (data.msg || '未知錯誤'));
+            }
+        })
+        .catch(() => alert('刪除失敗，請檢查網路'));
+    }
+    </script>
+</body>
+</html>

@@ -1,0 +1,19 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>註冊新員工</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="login-container">
+        <h2>註冊新員工</h2>
+        <form method="post" action="/boss-register">
+            <input type="text" name="username" placeholder="員工帳號" required>
+            <input type="password" name="password" placeholder="員工密碼" required>
+            <button type="submit" class="card-btn">註冊</button>
+        </form>
+        <button onclick="location.href='/staff-login-success'" class="card-btn" style="margin-top:16px;">返回</button>
+    </div>
+</body>
+</html>

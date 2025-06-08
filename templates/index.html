@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>Menu</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="login-btn-container" style="display:flex;gap:12px;align-items:center;">
+        <button onclick="location.href='/staff'" class="card-btn">登入</button>
+        <button id="table-number-btn" class="card-btn" style="background:#f39c12;color:#fff;font-size:1.1em;padding:8px 32px;border-radius:24px;box-shadow:0 2px 12px #0002;">
+            <span id="table-number-btn-label">選擇桌號</span>
+        </button>
+    </div>
+    <div class="cart-btn-container">
+        <button onclick="location.href='/shop-cart'" class="card-btn">購物車</button>
+    </div>
+    <h1>餐廳Menu</h1>
+    <table class="menu-table">
+        <tbody id="item-list"></tbody>
+    </table>
+
+    <!-- Modal for options -->
+    <div id="option-modal" class="modal" style="display:none;">
+        <div class="modal-content">
+            <span class="close" id="modal-close">&times;</span>
+            <h2 id="modal-title"></h2>
+            <form id="option-form">
+                <div id="option-checkboxes"></div>
+                <input type="text" id="option-note" placeholder="備註（可留空）" style="margin-top:12px;width:90%;">
+                <button type="submit" class="card-btn" style="margin-top:16px;">加入購物車</button>
+            </form>
+        </div>
+    </div>
+    <div id="table-number-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:32px 24px;border-radius:12px;box-shadow:0 2px 16px #0002;text-align:center;min-width:260px;">
+            <div style="font-size:1.2em;margin-bottom:16px;">請選擇桌號</div>
+            <div id="table-number-keypad" style="display:grid;grid-template-columns:repeat(3,48px);gap:12px;justify-content:center;margin-bottom:12px;"></div>
+            <div style="display:flex;gap:12px;justify-content:center;">
+                <button id="table-number-confirm" class="card-btn" style="background:#2ecc40;color:#fff;min-width:72px;" disabled>確定</button>
+            </div>
+        </div>
+    </div>
+    <script src="/static/main.js"></script>
+    <script>
+    // 桌號選擇互動（按下按鈕才彈窗，選完顯示於按鈕上）
+    function showTableNumberModal() {
+        const modal = document.getElementById('table-number-modal');
+        const keypad = document.getElementById('table-number-keypad');
+        const confirmBtn = document.getElementById('table-number-confirm');
+        let selected = null;
+        modal.style.display = 'flex';
+        keypad.innerHTML = '';
+        confirmBtn.disabled = true;
+        for(let i=1;i<=9;i++) {
+            const btn = document.createElement('button');
+            btn.type = 'button';
+            btn.textContent = i;
+            btn.className = 'card-btn';
+            btn.style = 'width:48px;height:48px;font-size:1.2em;background:#f39c12;color:#fff;';
+            btn.onclick = function() {
+                selected = i;
+                Array.from(keypad.children).forEach(b=>b.style.outline='none');
+                btn.style.outline = '3px solid #2ecc40';
+                confirmBtn.disabled = false;
+            };
+            keypad.appendChild(btn);
+        }
+        confirmBtn.onclick = function() {
+            if(selected) {
+                localStorage.setItem('tableNumber', selected);
+                modal.style.display = 'none';
+                document.getElementById('table-number-btn-label').textContent = `桌號：${selected}`;
+            }
+        };
+    }
+    document.addEventListener('DOMContentLoaded', function() {
+        const btn = document.getElementById('table-number-btn');
+        const label = document.getElementById('table-number-btn-label');
+        const tableNumber = localStorage.getItem('tableNumber');
+        if(tableNumber) {
+            label.textContent = `桌號：${tableNumber}`;
+        }
+        btn.onclick = function() {
+            showTableNumberModal();
+        };
+    });
+    </script>
+</body>
+</html>

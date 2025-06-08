@@ -1,0 +1,72 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>帳單紀錄</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="logout-btn-container">
+        <button onclick="location.href='/'" class="card-btn">登出</button>
+    </div>
+    <button class="boss-register-btn" onclick="location.href='/Boss-register'">註冊新員工</button>
+    <h1>帳單紀錄</h1>
+    <div style="margin-bottom:24px;">
+        <button onclick="location.href='/Boss'" class="card-btn" style="margin-left:12px;">返回老闆頁面</button>
+    </div>
+    <table class="menu-table" style="width:100%;max-width:900px;">
+        <thead>
+            <tr>
+                <th>編號</th>
+                <th>桌號</th>
+                <th>品項</th>
+                <th>價格</th>
+                <th>店員代碼</th>
+                <th>結帳時間</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% set last_month = None %}
+        {% set last_group = None %}
+        {% set group_counter = namespace(val=0) %}
+        {% set group_map = {} %}
+        {% set month_earliest = {} %}
+        {% for bill in bills %}
+            {% set month = bill.checkout_time[:7] %}
+            {% if month not in month_earliest or bill.checkout_time < month_earliest[month] %}
+                {% set _ = month_earliest.update({month: bill.checkout_time}) %}
+            {% endif %}
+        {% endfor %}
+        {% set month_tagged = {} %}
+        {% for bill in bills %}
+            {% set group_key = bill.table_number.replace('結帳', '').strip() ~ '-' ~ bill.checkout_time %}
+            {% set month = bill.checkout_time[:7] %}
+            {% if bill.checkout_time == month_earliest[month] and not month_tagged.get(month) %}
+                <tr>
+                    <td colspan="5" style="background:#f5f5f5;font-weight:bold;">{{ month.replace('-', '年') }}月帳單</td>
+                    <td style="background:#f5f5f5;">
+                        <form method="get" action="/bills/download">
+                            <input type="hidden" name="month" value="{{ month }}">
+                            <button type="submit" class="card-btn" style="padding:2px 10px;font-size:14px;">下載本月帳單</button>
+                        </form>
+                    </td>
+                </tr>
+                {% set _ = month_tagged.update({month: True}) %}
+            {% endif %}
+            {% if group_key not in group_map %}
+                {% set group_counter.val = group_counter.val + 1 %}
+                {% set _ = group_map.update({group_key: 'A' ~ '%03d' % group_counter.val}) %}
+            {% endif %}
+            <tr>
+                <td>{{ group_map[group_key] }}</td>
+                <td>{{ bill.table_number.replace('結帳', '').strip() }}</td>
+                <td>{{ bill.item_name }}</td>
+                <td>${{ '%.0f' % bill.item_price }}</td>
+                <td>{{ bill.staff_code }}</td>
+                <td>{{ bill.checkout_time }}</td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+</body>
+</html>

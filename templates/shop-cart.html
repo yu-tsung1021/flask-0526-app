@@ -1,0 +1,71 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>購物車</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <h1>購物車</h1>
+    <div id="cart-area">
+        <ul id="cart-list"></ul>
+        <div style="display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;margin:16px 0 0 0;gap:12px;">
+            <div id="cart-total" style="font-size:1.2em;font-weight:bold;">總金額：$0</div>
+            <div style="display:flex;gap:12px;">
+                <button onclick="location.href='/'" class="card-btn">回菜單,繼續點餐</button>
+                <button id="submit-order-btn" class="card-btn" style="background:#2ecc40;color:#fff;">送出訂單</button>
+            </div>
+        </div>
+    </div>
+    <div id="order-thankyou" style="display:none;text-align:center;font-size:1.5em;font-weight:bold;padding:48px 0;">謝謝點餐請至櫃檯結帳<br>結帳說出桌號即可</div>
+    <script src="/static/cart.js"></script>
+    <script>
+    // 統計購物車總金額
+    function updateCartTotal() {
+        let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+        let total = cart.reduce((sum, item) => sum + Number(item.price), 0);
+        document.getElementById('cart-total').textContent = `總金額：$${total}`;
+    }
+    document.addEventListener('DOMContentLoaded', updateCartTotal);
+    // 監聽購物車變動
+    window.addEventListener('cart-updated', updateCartTotal);
+    // 送出訂單按鈕互動
+    document.addEventListener('DOMContentLoaded', function() {
+        document.getElementById('submit-order-btn').onclick = function() {
+            const tableNumber = localStorage.getItem('tableNumber');
+            if (!tableNumber) {
+                alert('請先選擇桌號！');
+                return;
+            }
+            // 取得購物車內容
+            let cart = JSON.parse(localStorage.getItem('cart') || '[]');
+            if (cart.length === 0) {
+                alert('購物車是空的！');
+                return;
+            }
+            // 傳送訂單到後端
+            fetch('/api/order', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({
+                    tableNumber: tableNumber,
+                    items: cart
+                })
+            }).then(res => res.json()).then(data => {
+                if (data.success) {
+                    // 清空購物車與桌號
+                    localStorage.removeItem('cart');
+                    localStorage.removeItem('tableNumber');
+                    document.getElementById('cart-area').style.display = 'none';
+                    document.getElementById('order-thankyou').style.display = 'block';
+                } else {
+                    alert('送出訂單失敗，請重試');
+                }
+            }).catch(() => {
+                alert('送出訂單失敗，請檢查網路');
+            });
+        };
+    });
+    </script>
+</body>
+</html>

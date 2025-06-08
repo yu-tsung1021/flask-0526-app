@@ -1,0 +1,149 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+    <meta charset="UTF-8">
+    <title>員工後台</title>
+    <link rel="stylesheet" href="/static/style.css">
+</head>
+<body>
+    <div class="logout-btn-container">
+        <button onclick="location.href='/'" class="card-btn">登出</button>
+    </div>
+    <h1>歡迎{{ staff_code }}！</h1>
+    <p>這裡是你的結帳頁面。</p>
+    {% if orders %}
+    <h2>訂單列表</h2>
+    <table class="menu-table" style="width:100%;margin-top:24px;">
+        <thead>
+            <tr>
+                <th style="width:80px;">桌號</th>
+                <th>餐點明細</th>
+            </tr>
+        </thead>
+        <tbody>
+        {% for order in orders %}
+            <tr>
+                <td style="text-align:center;font-weight:bold;vertical-align:top;position:relative;">
+                    <button class="checkout-btn" onclick="toggleDetail('{{ order.id }}')">結帳</button>
+                    <br>{{ order.table_number }}
+                </td>
+                <td style="position:relative;">
+                    <ul style="margin:0;padding-left:1em;">
+                    {% for item in order["items"] %}
+                        <li style="display:flex;align-items:center;gap:8px;">
+                            <input type="checkbox" class="item-done-checkbox" onchange="toggleDone(this)">
+                            <span class="item-content">
+                                {{ item.name }} x1 <span style="color:#0c0b0b;">${{ item.price }}</span>
+                                {% if item.options and item.options|length > 0 %}
+                                    <span style="color:#2ecc40;">({{ item.options|join('、') }})</span>
+                                {% endif %}
+                                {% if item.note %}<span style="color:#f39c12;">（備註：{{ item.note }}）</span>{% endif %}
+                            </span>
+                        </li>
+                    {% endfor %}
+                    </ul>
+                    <div id="detail-{{ order.id }}" class="order-detail-modal" style="display:none;position:fixed;z-index:2000;background:#fff;border-radius:12px;box-shadow:0 2px 16px #0002;padding:24px 32px;min-width:260px;left:24px;top:24px;max-width:340px;">
+                        <h3 style="margin-top:0;">桌號：{{ order.table_number }}</h3>
+                        <table style="width:100%;margin-bottom:12px;">
+                            <tbody>
+                            {% set total = namespace(value=0) %}
+                            {% for item in order["items"] %}
+                                <tr>
+                                    <td style="text-align:left;">{{ item.name }}</td>
+                                    <td style="text-align:right;">${{ item.price }}</td>
+                                </tr>
+                                {% set total.value = total.value + (item.price|float) %}
+                            {% endfor %}
+                            </tbody>
+                        </table>
+                        <hr>
+                        <div style="text-align:right;font-size:1.2em;font-weight:bold;">共 ${{ '%.0f' % total.value }}</div>
+                        <div style="display:flex;justify-content:space-between;margin-top:18px;">
+                            <span style="color:#888;">店員代碼：<span class="staff-code">{{ staff_code }}</span></span>
+                            <span style="color:#888;">結帳時間：<span id="checkout-time-{{ order.id }}"></span></span>
+                        </div>
+                        <div style="text-align:right;margin-top:18px;">
+                            <button onclick="closeDetail('{{ order.id }}')" class="card-btn">結帳完成</button>
+                        </div>
+                    </div>
+                </td>
+            </tr>
+        {% endfor %}
+        </tbody>
+    </table>
+    <script>
+    function toggleDone(checkbox) {
+        const content = checkbox.nextElementSibling;
+        if (checkbox.checked) {
+            content.style.textDecoration = 'line-through';
+            content.style.color = '#bbb';
+        } else {
+            content.style.textDecoration = '';
+            content.style.color = '';
+        }
+    }
+    // 彈出/關閉明細表
+    function toggleDetail(orderId) {
+        // 關閉其他明細
+        document.querySelectorAll('.order-detail-modal').forEach(modal => {
+            if (modal.id !== 'detail-' + orderId) modal.style.display = 'none';
+        });
+        const modal = document.getElementById('detail-' + orderId);
+        if (modal.style.display === 'block') {
+            modal.style.display = 'none';
+        } else {
+            modal.style.display = 'block';
+            // 填入結帳時間
+            const now = new Date();
+            const timeStr = now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0') + ' ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+            document.getElementById('checkout-time-' + orderId).textContent = timeStr;
+        }
+    }
+    function closeDetail(orderId) {
+        document.getElementById('detail-' + orderId).style.display = 'none';
+    }
+    // 新增：結帳完成時將明細傳到帳單資料庫（不刪除訂單）
+    function sendBill(orderId, tableNumber, items) {
+        const staffCode = '{{ staff_code }}';
+        const now = new Date();
+        const timeStr = now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0') + ' ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
+        fetch('/api/bill', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+                table_number: tableNumber,
+                items: items,
+                staff_code: staffCode,
+                checkout_time: timeStr
+            })
+        }).then(res => res.json()).then(data => {
+            if (data.success) {
+                location.reload();
+            } else {
+                alert('傳送帳單失敗');
+            }
+        }).catch(() => alert('傳送帳單失敗'));
+    }
+    // 修改結帳完成按鈕
+    document.querySelectorAll('.order-detail-modal .card-btn').forEach(function(btn) {
+        if (btn.textContent.includes('結帳完成')) {
+            btn.onclick = function() {
+                const orderId = this.closest('.order-detail-modal').id.replace('detail-', '');
+                const tr = document.querySelector('tr td button[onclick*="' + orderId + '"]').closest('tr');
+                const tableNumber = tr.querySelector('td').textContent.trim();
+                const items = [];
+                tr.querySelectorAll('ul li').forEach(function(li) {
+                    const name = li.querySelector('.item-content').childNodes[0].textContent.trim().split(' x')[0];
+                    const price = li.querySelector('.item-content span').textContent.replace('$','');
+                    items.push({ name, price });
+                });
+                sendBill(orderId, tableNumber, items);
+            };
+        }
+    });
+    </script>
+    {% else %}
+    <p>目前沒有訂單。</p>
+    {% endif %}
+</body>
+</html>
