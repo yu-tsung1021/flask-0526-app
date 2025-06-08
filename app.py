@@ -167,25 +167,44 @@ def bills():
 
 @app.route('/bills/download')
 def download_bills():
-    import csv
-    from io import StringIO
-    from flask import Response, request
+    import pandas as pd
+    from io import BytesIO
+    from flask import send_file, request
     month = request.args.get('month')
     query = Bill.query.order_by(Bill.id.asc())
     if month:
-        # 只取該月份的帳單
         query = query.filter(Bill.checkout_time.startswith(month))
     bills = query.all()
-    si = StringIO()
-    cw = csv.writer(si)
-    cw.writerow(['桌號', '品項', '價格', '店員代碼', '結帳時間'])
+    # 產生分群編號
+    group_map = {}
+    group_counter = 0
+    rows = []
     for b in bills:
-        cw.writerow([b.table_number, b.item_name, b.item_price, b.staff_code, b.checkout_time])
-    output = si.getvalue().encode('utf-8-sig')
-    return Response(
+        group_key = f"{b.table_number.replace('結帳', '').strip()}-{b.checkout_time}"
+        if group_key not in group_map:
+            group_counter += 1
+            group_map[group_key] = f"A{group_counter:03d}"
+        rows.append([
+            group_map[group_key],
+            b.table_number.replace('結帳', '').strip(),
+            b.item_name,
+            b.item_price,
+            b.staff_code,
+            b.checkout_time
+        ])
+    df = pd.DataFrame(rows, columns=['編號', '桌號', '品項', '價格', '店員代碼', '結帳時間'])
+    output = BytesIO()
+    df.to_excel(output, index=False, engine='openpyxl')
+    output.seek(0)
+    if month:
+        filename = f'{month.replace("-", "年")}月帳單.xlsx'
+    else:
+        filename = '全部帳單.xlsx'
+    return send_file(
         output,
-        mimetype='text/csv',
-        headers={'Content-Disposition': f'attachment;filename=bills_{month if month else "all"}.csv'}
+        as_attachment=True,
+        download_name=filename,
+        mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
 @app.route('/Boss')
