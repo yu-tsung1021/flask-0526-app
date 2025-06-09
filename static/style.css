@@ -1,3 +1,21 @@
+/*
+style.css
+全站樣式設定：
+- 主題色、背景、字體、間距
+- 卡片、表格、彈窗、按鈕、購物車、員工/老闆後台等所有頁面樣式
+- 響應式設計（手機、桌機皆適用）
+- 主要用於 templates 目錄下所有 html 頁面
+- 包含：
+  - body、h1、#item-list、.card、.card-title、.card-price
+  - #cart-list、.card-remove-btn、.card-btn、.cart-btn-container
+  - .login-btn-container、.login-container、.boss-register-btn
+  - .staff-list、.staff-card、.logout-btn-container
+  - .modal、.modal-content、.close、#option-checkboxes、#option-note
+  - .menu-table 及其 th/td、.menu-plus-btn
+  - @media 響應式設定
+- 若需自訂新元件，請依照現有命名規則擴充
+*/
+
 body {
     display: flex;
     flex-direction: column;

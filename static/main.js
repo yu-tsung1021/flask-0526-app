@@ -1,3 +1,4 @@
+// main.js：主頁菜單互動、點餐動畫、桌號選擇
 console.log('main.js loaded');
 document.addEventListener('DOMContentLoaded', () => {
   fetch('/api/items')

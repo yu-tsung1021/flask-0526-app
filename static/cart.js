@@ -1,3 +1,5 @@
+// cart.js：購物車渲染、移除品項、購物車事件
+
 document.addEventListener('DOMContentLoaded', () => {
   renderCart();
 });

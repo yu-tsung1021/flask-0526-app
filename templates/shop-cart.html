@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- 購物車頁 shop-cart.html：顯示購物車、送出訂單、送出後自動跳轉 -->
     <h1>購物車</h1>
     <div id="cart-area">
         <ul id="cart-list"></ul>
@@ -20,7 +21,7 @@
     <div id="order-thankyou" style="display:none;text-align:center;font-size:1.5em;font-weight:bold;padding:48px 0;">謝謝點餐請至櫃檯結帳<br>結帳說出桌號即可</div>
     <script src="/static/cart.js"></script>
     <script>
-    // 統計購物車總金額
+    // 統計購物車總金額、送出訂單、10秒自動跳轉
     function updateCartTotal() {
         let cart = JSON.parse(localStorage.getItem('cart') || '[]');
         let total = cart.reduce((sum, item) => sum + Number(item.price), 0);

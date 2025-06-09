@@ -1,14 +1,25 @@
+# -*- coding: utf-8 -*-
+"""
+Flask 線上訂餐系統主程式
+- 前台點餐、購物車、桌號/外帶選擇
+- 員工後台訂單管理、結帳、訂單自動移除
+- 帳單分群、分類下載（Excel）
+- 訂單與帳單資料庫模型
+- requirements.txt 請勿刪除 pandas、openpyxl
+"""
 from flask import Flask, render_template, jsonify, request, redirect, url_for, flash, session
 from flask_sqlalchemy import SQLAlchemy
 import os
 import json
 
+# Flask 應用初始化
 app = Flask(__name__)
 app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///site.db'
-app.secret_key = 'your_secret_key_123456'  # 新增這一行，請改成你自己的安全字串
+app.secret_key = 'your_secret_key_123456'  # 請改成你自己的安全字串
+# SQLAlchemy 資料庫初始化
 db = SQLAlchemy(app)
 
-# 資料庫模型
+# 資料庫模型：菜單品項
 class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
@@ -17,19 +28,19 @@ class Item(db.Model):
     def to_dict(self):
         return {"id": self.id, "name": self.name, "price": self.price}
 
-# 員工資料模型
+# 資料庫模型：員工
 class Staff(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     username = db.Column(db.String(100), unique=True, nullable=False)
     password = db.Column(db.String(100), nullable=False)
 
-# 新增訂單資料模型
+# 資料庫模型：訂單
 class Order(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     table_number = db.Column(db.String(10), nullable=False)
     items = db.Column(db.Text, nullable=False)  # 儲存 JSON 字串
 
-# 新增帳單資料模型
+# 資料庫模型：帳單
 class Bill(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     table_number = db.Column(db.String(10), nullable=False)
@@ -38,23 +49,28 @@ class Bill(db.Model):
     staff_code = db.Column(db.String(100), nullable=False)
     checkout_time = db.Column(db.String(32), nullable=False)
 
+# 首頁
 @app.route('/')
 def index():
     return render_template('index.html')
 
+# 取得菜單品項 API
 @app.route('/api/items')
 def get_items():
     items = Item.query.all()
     return jsonify([item.to_dict() for item in items])
 
+# 購物車頁面
 @app.route('/shop-cart')
 def shop_cart():
     return render_template('shop-cart.html')
 
+# 員工登入頁面
 @app.route('/staff')
 def staff():
     return render_template('staff.html')
 
+# 員工登入驗證
 @app.route('/staff-login', methods=['POST'])
 def staff_login():
     username = request.form.get('username')
@@ -71,6 +87,7 @@ def staff_login():
         flash('帳號或密碼錯誤')
         return redirect(url_for('staff'))
 
+# 前台送出訂單 API
 @app.route('/api/order', methods=['POST'])
 def api_order():
     data = request.get_json()
@@ -83,6 +100,7 @@ def api_order():
     db.session.commit()
     return jsonify({'success': True})
 
+# 員工後台訂單管理頁面
 @app.route('/personnel')
 def personnel():
     orders = Order.query.order_by(Order.id.asc()).all()
@@ -93,7 +111,7 @@ def personnel():
         except Exception as e:
             print('訂單解析錯誤:', o.items, e)
             items = []
-        # 檢查該訂單所有品項是否都已存在於 Bill（同桌號、同品項、同價格、同結帳時間）
+        # 檢查該訂單所有品項是否都已存在於 Bill（同桌號、同品項、同價格）
         all_billed = True
         for item in items:
             bill = Bill.query.filter_by(
@@ -120,10 +138,12 @@ def personnel():
     staff_code = session.get('staff_code', 'A001')
     return render_template('personnel.html', orders=order_list, staff_code=staff_code)
 
+# 老闆註冊員工頁面
 @app.route('/Boss-register')
 def boss_register_page():
     return render_template('Boss-register.html')
 
+# 老闆註冊員工 API
 @app.route('/boss-register', methods=['POST'])
 def boss_register():
     username = request.form.get('username')
@@ -143,12 +163,13 @@ def boss_register():
     staffs = Staff.query.all()
     return render_template('Boss.html', staffs=staffs)
 
+# 註冊成功後回老闆頁面
 @app.route('/staff-login-success')
 def staff_login_success():
-    # 註冊成功後導回 Boss.html 並顯示員工名單
     staffs = Staff.query.all()
     return render_template('Boss.html', staffs=staffs)
 
+# 老闆刪除員工 API
 @app.route('/api/staff/<username>', methods=['DELETE'])
 def delete_staff(username):
     staff = Staff.query.filter_by(username=username).first()
@@ -158,6 +179,7 @@ def delete_staff(username):
     db.session.commit()
     return jsonify({'success': True})
 
+# 員工結帳 API，將訂單明細寫入帳單
 @app.route('/api/bill', methods=['POST'])
 def add_bill():
     data = request.get_json()
@@ -184,11 +206,13 @@ def add_bill():
         db.session.commit()
     return jsonify({'success': True})
 
+# 帳單紀錄頁面
 @app.route('/bills')
 def bills():
     bills = Bill.query.order_by(Bill.id.asc()).all()
     return render_template('bills.html', bills=bills)
 
+# 帳單 Excel 下載 API
 @app.route('/bills/download')
 def download_bills():
     import pandas as pd
@@ -231,11 +255,13 @@ def download_bills():
         mimetype='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet'
     )
 
+# 老闆後台頁面
 @app.route('/Boss')
 def boss_page():
     staffs = Staff.query.all()
     return render_template('Boss.html', staffs=staffs)
 
+# 主程式入口
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()

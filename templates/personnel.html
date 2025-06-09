@@ -6,6 +6,7 @@
     <link rel="stylesheet" href="/static/style.css">
 </head>
 <body>
+    <!-- 員工後台 personnel.html：訂單管理、結帳、訂單自動移除 -->
     <div class="logout-btn-container">
         <button onclick="location.href='/'" class="card-btn">登出</button>
     </div>
@@ -72,6 +73,7 @@
         </tbody>
     </table>
     <script>
+    // 勾選餐點、結帳完成、訂單自動移除、傳送帳單
     // 勾選餐點時自動檢查是否全部完成，若全部完成且無結帳按鈕則自動刪除該筆訂單列
     function checkAndRemoveOrderRow(tr) {
         const allChecked = Array.from(tr.querySelectorAll('.item-done-checkbox')).every(cb => cb.checked);
