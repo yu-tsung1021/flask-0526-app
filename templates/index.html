@@ -36,7 +36,8 @@
         <div style="background:#fff;padding:32px 24px;border-radius:12px;box-shadow:0 2px 16px #0002;text-align:center;min-width:260px;">
             <div style="font-size:1.2em;margin-bottom:16px;">請選擇桌號</div>
             <div id="table-number-keypad" style="display:grid;grid-template-columns:repeat(3,48px);gap:12px;justify-content:center;margin-bottom:12px;"></div>
-            <div style="display:flex;gap:12px;justify-content:center;">
+            <div style="display:flex;gap:12px;justify-content:center;margin-bottom:12px;">
+                <button id="table-number-takeout" class="card-btn" style="background:#e67e22;color:#fff;min-width:72px;">外帶</button>
                 <button id="table-number-confirm" class="card-btn" style="background:#2ecc40;color:#fff;min-width:72px;" disabled>確定</button>
             </div>
         </div>
@@ -48,6 +49,7 @@
         const modal = document.getElementById('table-number-modal');
         const keypad = document.getElementById('table-number-keypad');
         const confirmBtn = document.getElementById('table-number-confirm');
+        const takeoutBtn = document.getElementById('table-number-takeout');
         let selected = null;
         modal.style.display = 'flex';
         keypad.innerHTML = '';
@@ -72,6 +74,12 @@
                 modal.style.display = 'none';
                 document.getElementById('table-number-btn-label').textContent = `桌號：${selected}`;
             }
+        };
+        // 外帶按鈕
+        takeoutBtn.onclick = function() {
+            localStorage.setItem('tableNumber', '外帶');
+            modal.style.display = 'none';
+            document.getElementById('table-number-btn-label').textContent = '桌號：外帶';
         };
     }
     document.addEventListener('DOMContentLoaded', function() {

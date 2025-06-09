@@ -93,9 +93,28 @@ def personnel():
         except Exception as e:
             print('訂單解析錯誤:', o.items, e)
             items = []
+        # 檢查該訂單所有品項是否都已存在於 Bill（同桌號、同品項、同價格、同結帳時間）
+        all_billed = True
+        for item in items:
+            bill = Bill.query.filter_by(
+                table_number=o.table_number,
+                item_name=item.get('name'),
+                item_price=float(item.get('price', 0))
+            ).first()
+            if not bill:
+                all_billed = False
+                break
+        if all_billed:
+            try:
+                db.session.delete(o)
+                db.session.commit()
+            except Exception as e:
+                db.session.rollback()
+                print('訂單刪除失敗:', o.id, e)
+            continue
         order_list.append({
             'id': o.id,
-            'table_number': o.table_number,
+            'table_number': o.table_number if o.table_number else '外帶',
             'items': items
         })
     staff_code = session.get('staff_code', 'A001')
@@ -158,6 +177,11 @@ def add_bill():
         )
         db.session.add(bill)
     db.session.commit()
+    # 新增：刪除已結帳的訂單
+    order = Order.query.filter_by(table_number=table_number, items=json.dumps(items, ensure_ascii=False)).first()
+    if order:
+        db.session.delete(order)
+        db.session.commit()
     return jsonify({'success': True})
 
 @app.route('/bills')
@@ -186,7 +210,7 @@ def download_bills():
             group_map[group_key] = f"A{group_counter:03d}"
         rows.append([
             group_map[group_key],
-            b.table_number.replace('結帳', '').strip(),
+            b.table_number.replace('結帳', '').strip() if b.table_number.replace('結帳', '').strip() else '外帶',
             b.item_name,
             b.item_price,
             b.staff_code,

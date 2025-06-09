@@ -59,7 +59,7 @@
             {% endif %}
             <tr>
                 <td>{{ group_map[group_key] }}</td>
-                <td>{{ bill.table_number.replace('結帳', '').strip() }}</td>
+                <td>{{ bill.table_number.replace('結帳', '').strip() if bill.table_number.replace('結帳', '').strip() else '外帶' }}</td>
                 <td>{{ bill.item_name }}</td>
                 <td>${{ '%.0f' % bill.item_price }}</td>
                 <td>{{ bill.staff_code }}</td>
