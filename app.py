@@ -24,9 +24,10 @@ class Item(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     price = db.Column(db.Float, nullable=False)
+    category = db.Column(db.String(20), nullable=True)  # 新增分類欄位
 
     def to_dict(self):
-        return {"id": self.id, "name": self.name, "price": self.price}
+        return {"id": self.id, "name": self.name, "price": self.price, "category": self.category}
 
 # 資料庫模型：員工
 class Staff(db.Model):
@@ -54,11 +55,59 @@ class Bill(db.Model):
 def index():
     return render_template('index.html')
 
-# 取得菜單品項 API
-@app.route('/api/items')
-def get_items():
-    items = Item.query.all()
-    return jsonify([item.to_dict() for item in items])
+# 取得菜單品項 API（支援 POST 新增菜品）
+@app.route('/api/items', methods=['GET', 'POST'])
+def get_or_add_items():
+    if request.method == 'GET':
+        items = Item.query.all()
+        # 嘗試回傳 category 欄位（若有）
+        result = []
+        for item in items:
+            d = item.to_dict()
+            if hasattr(item, 'category'):
+                d['category'] = getattr(item, 'category', None)
+            result.append(d)
+        return jsonify(result)
+    # POST 新增菜品
+    data = request.get_json()
+    name = data.get('name')
+    price = data.get('price')
+    options = data.get('options', [])
+    category = data.get('category', None)
+    if not name or price is None:
+        return jsonify({'success': False, 'msg': '缺少名稱或價格'}), 400
+    # 檢查是否重複
+    if Item.query.filter_by(name=name).first():
+        return jsonify({'success': False, 'msg': '菜品已存在'}), 400
+    # 嘗試支援 category 欄位
+    try:
+        item = Item(name=name, price=price)
+        if hasattr(item, 'category'):
+            setattr(item, 'category', category)
+        db.session.add(item)
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'msg': str(e)})
+    # 細項寫入 main.js（如有 options）
+    if options:
+        try:
+            with open('static/main.js', 'r', encoding='utf-8') as f:
+                js = f.read()
+            # 找到 itemOptions = { ... } 物件
+            import re
+            m = re.search(r'const itemOptions = {(.*?)};', js, re.DOTALL)
+            if m:
+                before = js[:m.end(1)]
+                after = js[m.end(1):]
+                # 新增一行
+                opt_str = f"  '{name}': {options!r},\n"
+                js = before + '\n' + opt_str + after
+                with open('static/main.js', 'w', encoding='utf-8') as f:
+                    f.write(js)
+        except Exception as e:
+            pass  # 靜默失敗
+    return jsonify({'success': True})
 
 # 購物車頁面
 @app.route('/shop-cart')
@@ -261,6 +310,16 @@ def boss_page():
     staffs = Staff.query.all()
     return render_template('Boss.html', staffs=staffs)
 
+# 刪除餐品 API
+@app.route('/api/items/<int:item_id>', methods=['DELETE'])
+def delete_item(item_id):
+    item = Item.query.get(item_id)
+    if not item:
+        return jsonify({'success': False, 'msg': '找不到餐品'})
+    db.session.delete(item)
+    db.session.commit()
+    return jsonify({'success': True})
+
 # 主程式入口
 if __name__ == '__main__':
     with app.app_context():
@@ -276,7 +335,17 @@ if __name__ == '__main__':
                 Item(name='咖哩飯', price=90),
                 Item(name='水餃(10顆)', price=70),
                 Item(name='鍋貼(10顆)', price=75),
-                Item(name='雞腿飯', price=125)
+                Item(name='雞腿飯', price=125),
+                Item(name='紅燒牛腩麵', price=140),
+                Item(name='三杯雞飯', price=120),
+                Item(name='麻婆豆腐飯', price=95),
+                Item(name='蔥爆豬肉飯', price=110),
+                Item(name='炸醬麵', price=85),
+                Item(name='酸辣湯麵', price=90),
+                Item(name='青菜蛋花湯', price=40),
+                Item(name='紫菜蛋花湯', price=35),
+                Item(name='玉米濃湯', price=45),
+                Item(name='酸辣湯', price=50)
             ]
             db.session.add_all(items)
             db.session.commit()

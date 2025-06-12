@@ -17,6 +17,14 @@
         <button onclick="location.href='/shop-cart'" class="card-btn">購物車</button>
     </div>
     <h1>餐廳Menu</h1>
+    <!-- 新增：分類橫向目錄 -->
+    <div id="category-nav" style="display:flex;gap:12px;justify-content:center;margin-bottom:16px;">
+        <a href="#menu-fan" class="cat-nav-btn">飯類</a>
+        <a href="#menu-mian" class="cat-nav-btn">麵類</a>
+        <a href="#menu-tang" class="cat-nav-btn">湯類</a>
+        <a href="#menu-shuijiao" class="cat-nav-btn">水餃類</a>
+        <a href="#menu-guotie" class="cat-nav-btn">鍋貼類</a>
+    </div>
     <table class="menu-table">
         <tbody id="item-list"></tbody>
     </table>
@@ -83,6 +91,51 @@
             document.getElementById('table-number-btn-label').textContent = '桌號：外帶';
         };
     }
+    // 分類 tab 互動
+    function renderCategoryTabs(items) {
+        const categories = Array.from(new Set(items.map(i => i.category || '其他')));
+        const tabs = document.getElementById('category-tabs');
+        tabs.innerHTML = '';
+        categories.forEach(cat => {
+            const btn = document.createElement('button');
+            btn.textContent = cat;
+            btn.className = 'card-btn';
+            btn.onclick = function() {
+                renderMenu(items, cat);
+                Array.from(tabs.children).forEach(b => b.classList.remove('active'));
+                btn.classList.add('active');
+            };
+            tabs.appendChild(btn);
+        });
+        // 預設顯示第一個分類
+        if (categories.length > 0) {
+            tabs.children[0].click();
+        }
+    }
+    function renderMenu(items, category) {
+        const list = document.getElementById('item-list');
+        list.innerHTML = '';
+        items.filter(i => (i.category || '其他') === category).forEach(item => {
+            const tr = document.createElement('tr');
+            tr.innerHTML = `
+              <td class="menu-name">${item.name}</td>
+              <td class="menu-price">$${item.price}</td>
+              <td class="menu-plus"><button class="menu-plus-btn">＋</button></td>
+            `;
+            tr.querySelector('.menu-plus-btn').addEventListener('click', function() {
+              showOptionModal(item.name, item.price, this);
+            });
+            list.appendChild(tr);
+        });
+    }
+    // 載入菜單時自動渲染分類
+    document.addEventListener('DOMContentLoaded', () => {
+      fetch('/api/items')
+        .then(res => res.json())
+        .then(items => {
+          renderCategoryTabs(items);
+        });
+    });
     document.addEventListener('DOMContentLoaded', function() {
         const btn = document.getElementById('table-number-btn');
         const label = document.getElementById('table-number-btn-label');

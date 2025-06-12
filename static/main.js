@@ -1,23 +1,53 @@
-// main.js：主頁菜單互動、點餐動畫、桌號選擇
+// main.js：主頁菜單互動、點餐動畫、桌號選擇、分類分群
 console.log('main.js loaded');
 document.addEventListener('DOMContentLoaded', () => {
   fetch('/api/items')
     .then(res => res.json())
     .then(items => {
+      // 分類規則
+      const categoryMap = {
+        '飯類': ['雞排飯','滷肉飯','排骨便當','燒臘飯','咖哩飯','雞腿飯','三杯雞飯','麻婆豆腐飯','蔥爆豬肉飯'],
+        '麵類': ['牛肉麵','陽春麵','紅燒牛腩麵','炸醬麵','酸辣湯麵'],
+        '湯類': ['青菜蛋花湯','紫菜蛋花湯','玉米濃湯','酸辣湯'],
+        '水餃類': ['水餃(10顆)'],
+        '鍋貼類': ['鍋貼(10顆)']
+      };
+      // 依分類渲染
       const list = document.getElementById('item-list');
       list.innerHTML = '';
-      items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="menu-name">${item.name}</td>
-          <td class="menu-price">$${item.price}</td>
-          <td class="menu-plus"><button class="menu-plus-btn">＋</button></td>
-        `;
-        // 新增事件監聽，傳遞正確的 btn
-        tr.querySelector('.menu-plus-btn').addEventListener('click', function() {
-          showOptionModal(item.name, item.price, this);
+      // 先依照原本 categoryMap 渲染預設菜單
+      Object.entries(categoryMap).forEach(([cat, names]) => {
+        // 插入分類錨點
+        const anchor = document.createElement('tr');
+        anchor.id = 'menu-' + cat.replace('類','').replace('飯','fan').replace('麵','mian').replace('湯','tang').replace('水餃','shuijiao').replace('鍋貼','guotie');
+        anchor.innerHTML = `<td colspan="3" class="menu-category-title">${cat}</td>`;
+        list.appendChild(anchor);
+        // 原本預設菜單
+        items.filter(item => names.includes(item.name)).forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="menu-name">${item.name}</td>
+            <td class="menu-price">$${item.price}</td>
+            <td class="menu-plus"><button class="menu-plus-btn">＋</button></td>
+          `;
+          tr.querySelector('.menu-plus-btn').addEventListener('click', function() {
+            showOptionModal(item.name, item.price, this);
+          });
+          list.appendChild(tr);
         });
-        list.appendChild(tr);
+        // 新增：渲染該分類下資料庫有但 categoryMap 沒有的自訂菜品
+        items.filter(item => item.category === cat && !names.includes(item.name)).forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="menu-name">${item.name}</td>
+            <td class="menu-price">$${item.price}</td>
+            <td class="menu-plus"><button class="menu-plus-btn">＋</button></td>
+          `;
+          tr.querySelector('.menu-plus-btn').addEventListener('click', function() {
+            showOptionModal(item.name, item.price, this);
+          });
+          list.appendChild(tr);
+        });
       });
     });
 
@@ -35,7 +65,18 @@ const itemOptions = {
   '咖哩飯': ['加飯'],
   '水餃(10顆)': [],
   '鍋貼(10顆)': [],
-  '雞腿飯': ['加飯', '不要蔥']
+  '雞腿飯': ['加飯', '不要蔥'],
+  '紅燒牛腩麵': ['加麵', '不要香菜'],
+  '三杯雞飯': ['加飯', '不要九層塔'],
+  '麻婆豆腐飯': ['加飯', '微辣', '中辣', '大辣'],
+  '蔥爆豬肉飯': ['加飯', '不要蔥'],
+  '炸醬麵': ['加麵', '不要蔥'],
+  '酸辣湯麵': ['加麵', '加辣'],
+  '青菜蛋花湯': ['加蛋', '加青菜'],
+  '紫菜蛋花湯': ['加蛋', '加紫菜'],
+  '玉米濃湯': ['加蛋', '加玉米'],
+  '酸辣湯': ['加辣', '不要香菜'],
+  '醬油乾麵': ['不要蔥', '不要香菜']
 };
 
 // Modal 元件互動
@@ -111,20 +152,50 @@ document.addEventListener('DOMContentLoaded', () => {
   fetch('/api/items')
     .then(res => res.json())
     .then(items => {
+      // 分類規則
+      const categoryMap = {
+        '飯類': ['雞排飯','滷肉飯','排骨便當','燒臘飯','咖哩飯','雞腿飯','三杯雞飯','麻婆豆腐飯','蔥爆豬肉飯'],
+        '麵類': ['牛肉麵','陽春麵','紅燒牛腩麵','炸醬麵','酸辣湯麵'],
+        '湯類': ['青菜蛋花湯','紫菜蛋花湯','玉米濃湯','酸辣湯'],
+        '水餃類': ['水餃(10顆)'],
+        '鍋貼類': ['鍋貼(10顆)']
+      };
+      // 依分類渲染
       const list = document.getElementById('item-list');
       list.innerHTML = '';
-      items.forEach(item => {
-        const tr = document.createElement('tr');
-        tr.innerHTML = `
-          <td class="menu-name">${item.name}</td>
-          <td class="menu-price">$${item.price}</td>
-          <td class="menu-plus"><button class="menu-plus-btn">＋</button></td>
-        `;
-        // 新增事件監聽，傳遞正確的 btn
-        tr.querySelector('.menu-plus-btn').addEventListener('click', function() {
-          showOptionModal(item.name, item.price, this);
+      // 先依照原本 categoryMap 渲染預設菜單
+      Object.entries(categoryMap).forEach(([cat, names]) => {
+        // 插入分類錨點
+        const anchor = document.createElement('tr');
+        anchor.id = 'menu-' + cat.replace('類','').replace('飯','fan').replace('麵','mian').replace('湯','tang').replace('水餃','shuijiao').replace('鍋貼','guotie');
+        anchor.innerHTML = `<td colspan="3" class="menu-category-title">${cat}</td>`;
+        list.appendChild(anchor);
+        // 原本預設菜單
+        items.filter(item => names.includes(item.name)).forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="menu-name">${item.name}</td>
+            <td class="menu-price">$${item.price}</td>
+            <td class="menu-plus"><button class="menu-plus-btn">＋</button></td>
+          `;
+          tr.querySelector('.menu-plus-btn').addEventListener('click', function() {
+            showOptionModal(item.name, item.price, this);
+          });
+          list.appendChild(tr);
         });
-        list.appendChild(tr);
+        // 新增：渲染該分類下資料庫有但 categoryMap 沒有的自訂菜品
+        items.filter(item => item.category === cat && !names.includes(item.name)).forEach(item => {
+          const tr = document.createElement('tr');
+          tr.innerHTML = `
+            <td class="menu-name">${item.name}</td>
+            <td class="menu-price">$${item.price}</td>
+            <td class="menu-plus"><button class="menu-plus-btn">＋</button></td>
+          `;
+          tr.querySelector('.menu-plus-btn').addEventListener('click', function() {
+            showOptionModal(item.name, item.price, this);
+          });
+          list.appendChild(tr);
+        });
       });
     });
 });
