@@ -74,12 +74,29 @@
     </table>
     <script>
     // 勾選餐點、結帳完成、訂單自動移除、傳送帳單
-    // 勾選餐點時自動檢查是否全部完成，若全部完成且無結帳按鈕則自動刪除該筆訂單列
+    // 勾選餐點時自動檢查是否全部完成，若全部完成且無結帳按鈕則自動刪除該筆訂單（從資料庫刪除）
     function checkAndRemoveOrderRow(tr) {
         const allChecked = Array.from(tr.querySelectorAll('.item-done-checkbox')).every(cb => cb.checked);
         const checkoutBtn = tr.querySelector('.checkout-btn');
+        // 新增：若已結帳（按鈕消失）且商品全勾選，則刪除訂單
         if (allChecked && (!checkoutBtn || checkoutBtn.style.display === 'none')) {
-            tr.remove();
+            const orderId = tr.querySelector('button.checkout-btn')?.getAttribute('onclick')?.match(/toggleDetail\('?(\d+)'?\)/)?.[1];
+            if (orderId) {
+                fetch(`/api/orders/${orderId}`, { method: 'DELETE' })
+                    .then(res => res.json())
+                    .then(data => {
+                        if (data.success) {
+                            tr.remove();
+                            location.reload();
+                        } else {
+                            alert('刪除訂單失敗：' + (data.msg || '未知錯誤'));
+                        }
+                    })
+                    .catch(() => alert('刪除訂單失敗，請檢查網路'));
+            } else {
+                tr.remove();
+                location.reload();
+            }
         }
     }
     function toggleDone(checkbox) {
@@ -115,7 +132,47 @@
     function closeDetail(orderId) {
         document.getElementById('detail-' + orderId).style.display = 'none';
     }
-    // 新增：結帳完成時將明細傳到帳單資料庫（不刪除訂單）
+    // 修改結帳完成按鈕
+    document.querySelectorAll('.order-detail-modal .card-btn').forEach(function(btn) {
+        if (btn.textContent.includes('結帳完成')) {
+            btn.onclick = function() {
+                const orderId = this.closest('.order-detail-modal').id.replace('detail-', '');
+                const tr = document.querySelector('tr td button[onclick*="' + orderId + '"]').closest('tr');
+                const tableNumber = tr.querySelector('td').textContent.trim();
+                const items = [];
+                let allChecked = true;
+                tr.querySelectorAll('ul li').forEach(function(li) {
+                    const name = li.querySelector('.item-content').childNodes[0].textContent.trim().split(' x')[0];
+                    const price = li.querySelector('.item-content span').textContent.replace('$','');
+                    items.push({ name, price });
+                    if (!li.querySelector('.item-done-checkbox').checked) allChecked = false;
+                });
+                // 1. 結帳完成時立即傳送帳單
+                sendBill(orderId, tableNumber, items);
+                // 2. 隱藏主表格的結帳按鈕
+                const checkoutBtn = tr.querySelector('.checkout-btn');
+                if (checkoutBtn) checkoutBtn.style.display = 'none';
+                // 3. 關閉明細
+                closeDetail(orderId);
+                // 4. 若商品都已勾選，結帳完成時直接刪除訂單
+                if (allChecked) {
+                    fetch(`/api/orders/${orderId}`, { method: 'DELETE' })
+                        .then(res => res.json())
+                        .then(data => {
+                            if (data.success) {
+                                tr.remove();
+                                location.reload();
+                            } else {
+                                alert('刪除訂單失敗：' + (data.msg || '未知錯誤'));
+                            }
+                        })
+                        .catch(() => alert('刪除訂單失敗，請檢查網路'));
+                }
+            };
+        }
+    });
+
+    // sendBill 只負責傳送帳單，不做刪除訂單
     function sendBill(orderId, tableNumber, items) {
         const staffCode = '{{ staff_code }}';
         const now = new Date();
@@ -130,59 +187,11 @@
                 checkout_time: timeStr
             })
         }).then(res => res.json()).then(data => {
-            if (data.success) {
-                location.reload();
-            } else {
+            if (!data.success) {
                 alert('傳送帳單失敗');
             }
         }).catch(() => alert('傳送帳單失敗'));
     }
-    // 修改結帳完成按鈕
-    document.querySelectorAll('.order-detail-modal .card-btn').forEach(function(btn) {
-        if (btn.textContent.includes('結帳完成')) {
-            btn.onclick = function() {
-                const orderId = this.closest('.order-detail-modal').id.replace('detail-', '');
-                const tr = document.querySelector('tr td button[onclick*="' + orderId + '"]').closest('tr');
-                const tableNumber = tr.querySelector('td').textContent.trim();
-                const items = [];
-                tr.querySelectorAll('ul li').forEach(function(li) {
-                    const name = li.querySelector('.item-content').childNodes[0].textContent.trim().split(' x')[0];
-                    const price = li.querySelector('.item-content span').textContent.replace('$','');
-                    items.push({ name, price });
-                });
-                // 隱藏主表格的結帳按鈕（需在 reload 前執行）
-                const checkoutBtn = tr.querySelector('.checkout-btn');
-                if (checkoutBtn) checkoutBtn.style.display = 'none';
-                // 關閉明細
-                closeDetail(orderId);
-                // 傳送帳單，成功後不 reload
-                const staffCode = '{{ staff_code }}';
-                const now = new Date();
-                const timeStr = now.getFullYear() + '-' + (now.getMonth()+1).toString().padStart(2,'0') + '-' + now.getDate().toString().padStart(2,'0') + ' ' + now.getHours().toString().padStart(2,'0') + ':' + now.getMinutes().toString().padStart(2,'0');
-                fetch('/api/bill', {
-                    method: 'POST',
-                    headers: { 'Content-Type': 'application/json' },
-                    body: JSON.stringify({
-                        table_number: tableNumber,
-                        items: items,
-                        staff_code: staffCode,
-                        checkout_time: timeStr
-                    })
-                }).then(res => res.json()).then(data => {
-                    if (!data.success) {
-                        alert('傳送帳單失敗');
-                        if (checkoutBtn) checkoutBtn.style.display = '';
-                    } else {
-                        // 結帳後檢查是否要自動刪除該筆訂單列
-                        checkAndRemoveOrderRow(tr);
-                    }
-                }).catch(() => {
-                    alert('傳送帳單失敗');
-                    if (checkoutBtn) checkoutBtn.style.display = '';
-                });
-            };
-        }
-    });
     </script>
     {% else %}
     <p>目前沒有訂單。</p>

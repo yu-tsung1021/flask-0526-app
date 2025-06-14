@@ -29,6 +29,12 @@ class Item(db.Model):
     def to_dict(self):
         return {"id": self.id, "name": self.name, "price": self.price, "category": self.category}
 
+# 新增：細項資料表
+class ItemOption(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    item_id = db.Column(db.Integer, db.ForeignKey('item.id'), nullable=False)
+    option = db.Column(db.String(100), nullable=False)
+
 # 資料庫模型：員工
 class Staff(db.Model):
     id = db.Column(db.Integer, primary_key=True)
@@ -49,6 +55,11 @@ class Bill(db.Model):
     item_price = db.Column(db.Float, nullable=False)
     staff_code = db.Column(db.String(100), nullable=False)
     checkout_time = db.Column(db.String(32), nullable=False)
+
+# 新增：分類資料表
+class Category(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(20), unique=True, nullable=False)
 
 # 首頁
 @app.route('/')
@@ -86,27 +97,43 @@ def get_or_add_items():
             setattr(item, 'category', category)
         db.session.add(item)
         db.session.commit()
+        # 新增：細項寫入 ItemOption
+        for opt in options:
+            db.session.add(ItemOption(item_id=item.id, option=opt))
+        db.session.commit()
     except Exception as e:
         db.session.rollback()
         return jsonify({'success': False, 'msg': str(e)})
-    # 細項寫入 main.js（如有 options）
-    if options:
-        try:
-            with open('static/main.js', 'r', encoding='utf-8') as f:
-                js = f.read()
-            # 找到 itemOptions = { ... } 物件
-            import re
-            m = re.search(r'const itemOptions = {(.*?)};', js, re.DOTALL)
-            if m:
-                before = js[:m.end(1)]
-                after = js[m.end(1):]
-                # 新增一行
-                opt_str = f"  '{name}': {options!r},\n"
-                js = before + '\n' + opt_str + after
-                with open('static/main.js', 'w', encoding='utf-8') as f:
-                    f.write(js)
-        except Exception as e:
-            pass  # 靜默失敗
+    return jsonify({'success': True})
+
+# 新增：取得所有餐點細項 API
+@app.route('/api/item_options')
+def get_item_options():
+    items = Item.query.all()
+    options = ItemOption.query.all()
+    item_map = {item.id: item.name for item in items}
+    result = {}
+    for opt in options:
+        name = item_map.get(opt.item_id)
+        if not name:
+            continue
+        result.setdefault(name, []).append(opt.option)
+    return jsonify(result)
+
+# 新增：取得/新增分類 API
+@app.route('/api/categories', methods=['GET', 'POST'])
+def categories():
+    if request.method == 'GET':
+        cats = Category.query.order_by(Category.id.asc()).all()
+        return jsonify([c.name for c in cats])
+    data = request.get_json()
+    name = data.get('name', '').strip()
+    if not name:
+        return jsonify({'success': False, 'msg': '分類名稱不得為空'}), 400
+    if Category.query.filter_by(name=name).first():
+        return jsonify({'success': False, 'msg': '分類已存在'}), 400
+    db.session.add(Category(name=name))
+    db.session.commit()
     return jsonify({'success': True})
 
 # 購物車頁面
@@ -319,6 +346,40 @@ def delete_item(item_id):
     db.session.delete(item)
     db.session.commit()
     return jsonify({'success': True})
+
+# 新增：刪除分類及其商品 API
+@app.route('/api/categories/<cat_name>', methods=['DELETE'])
+def delete_category(cat_name):
+    # 刪除分類下所有商品（不論該分類是否在 Category 表，並處理全形/半形/空白）
+    def norm(s):
+        return (s or '').replace(' ', '').replace('\u3000', '').replace('類','').strip()
+    # 找出所有分類名稱相等的商品（比對時去掉「類」字）
+    items = Item.query.all()
+    for item in items:
+        if norm(item.category) == norm(cat_name):
+            ItemOption.query.filter_by(item_id=item.id).delete()
+            db.session.delete(item)
+    # 刪除分類（如果有，並比對全形半形）
+    cats = Category.query.all()
+    for cat in cats:
+        if norm(cat.name) == norm(cat_name):
+            db.session.delete(cat)
+    db.session.commit()
+    return jsonify({'success': True})
+
+# 刪除訂單 API
+@app.route('/api/orders/<int:order_id>', methods=['DELETE'])
+def delete_order(order_id):
+    order = Order.query.get(order_id)
+    if not order:
+        return jsonify({'success': False, 'msg': '訂單不存在'}), 404
+    try:
+        db.session.delete(order)
+        db.session.commit()
+        return jsonify({'success': True})
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'success': False, 'msg': str(e)}), 500
 
 # 主程式入口
 if __name__ == '__main__':

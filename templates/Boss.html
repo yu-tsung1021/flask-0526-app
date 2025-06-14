@@ -14,6 +14,8 @@
     <button class="boss-register-btn" style="top:120px;background:#2ecc40;right:32px;" onclick="location.href='/bills'">查看帳單</button>
     <button class="boss-register-btn" style="top:180px;background:#e67e22;right:32px;" onclick="showAddItemModal()">新增菜品</button>
     <button class="boss-register-btn" style="top:240px;background:#e74c3c;right:32px;" onclick="showDeleteItemModal()">刪除餐品</button>
+    <button class="boss-register-btn" style="top:300px;background:#27ae60;right:32px;" onclick="showAddCategoryModal()">新增分類</button>
+    <button class="boss-register-btn" style="top:360px;background:#c0392b;right:32px;" onclick="showDeleteCategoryModal()">刪除分類</button>
     <!-- 新增菜品 Modal -->
     <div id="add-item-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
         <div style="background:#fff;padding:48px 36px 36px 36px;border-radius:18px;box-shadow:0 4px 32px #0003;text-align:center;min-width:340px;max-width:420px;width:92vw;">
@@ -21,13 +23,7 @@
             <input id="new-item-name" type="text" placeholder="菜品名稱" style="width:96%;margin-bottom:16px;font-size:1.2em;padding:10px 8px;"><br>
             <input id="new-item-price" type="number" placeholder="價格" style="width:96%;margin-bottom:16px;font-size:1.2em;padding:10px 8px;"><br>
             <input id="new-item-options" type="text" placeholder="細項（用逗號分隔）" style="width:96%;margin-bottom:16px;font-size:1.1em;padding:10px 8px;"><br>
-            <select id="new-item-category" style="width:96%;margin-bottom:20px;font-size:1.1em;padding:10px 8px;">
-                <option value="飯類">飯類</option>
-                <option value="麵類">麵類</option>
-                <option value="湯類">湯類</option>
-                <option value="水餃類">水餃類</option>
-                <option value="鍋貼類">鍋貼類</option>
-            </select><br>
+            <select id="new-item-category" style="width:96%;margin-bottom:20px;font-size:1.1em;padding:10px 8px;"></select><br>
             <button class="card-btn" style="font-size:1.1em;padding:10px 32px;margin-right:12px;" onclick="submitNewItem()">送出</button>
             <button class="card-btn" style="background:#aaa;color:#fff;font-size:1.1em;padding:10px 32px;" onclick="closeAddItemModal()">取消</button>
         </div>
@@ -39,6 +35,24 @@
             <select id="delete-item-select" style="width:96%;margin-bottom:20px;font-size:1.1em;padding:10px 8px;"></select><br>
             <button class="card-btn" style="font-size:1.1em;padding:10px 32px;margin-right:12px;background:#e74c3c;color:#fff;" onclick="submitDeleteItem()">刪除</button>
             <button class="card-btn" style="background:#aaa;color:#fff;font-size:1.1em;padding:10px 32px;" onclick="closeDeleteItemModal()">取消</button>
+        </div>
+    </div>
+    <!-- 新增分類 Modal -->
+    <div id="add-category-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:40px 32px 32px 32px;border-radius:16px;box-shadow:0 4px 32px #0003;text-align:center;min-width:320px;max-width:420px;width:92vw;">
+            <div style="font-size:1.3em;margin-bottom:18px;font-weight:bold;letter-spacing:2px;">新增分類</div>
+            <input id="new-category-name" type="text" placeholder="分類名稱" style="width:96%;margin-bottom:20px;font-size:1.1em;padding:10px 8px;"><br>
+            <button class="card-btn" style="font-size:1.1em;padding:10px 32px;margin-right:12px;background:#27ae60;color:#fff;" onclick="submitNewCategory()">送出</button>
+            <button class="card-btn" style="background:#aaa;color:#fff;font-size:1.1em;padding:10px 32px;" onclick="closeAddCategoryModal()">取消</button>
+        </div>
+    </div>
+    <!-- 刪除分類 Modal -->
+    <div id="delete-category-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:40px 32px 32px 32px;border-radius:16px;box-shadow:0 4px 32px #0003;text-align:center;min-width:320px;max-width:420px;width:92vw;">
+            <div style="font-size:1.3em;margin-bottom:18px;font-weight:bold;letter-spacing:2px;">刪除分類</div>
+            <select id="delete-category-select" style="width:96%;margin-bottom:20px;font-size:1.1em;padding:10px 8px;"></select><br>
+            <button class="card-btn" style="font-size:1.1em;padding:10px 32px;margin-right:12px;background:#c0392b;color:#fff;" onclick="submitDeleteCategory()">刪除</button>
+            <button class="card-btn" style="background:#aaa;color:#fff;font-size:1.1em;padding:10px 32px;" onclick="closeDeleteCategoryModal()">取消</button>
         </div>
     </div>
     <h1>歡迎老闆 Tsung！</h1>
@@ -71,6 +85,19 @@
         .catch(() => alert('刪除失敗，請檢查網路'));
     }
     function showAddItemModal() {
+        // 動態載入所有分類（不論有無商品）
+        fetch('/api/categories')
+            .then(res => res.json())
+            .then(categories => {
+                const select = document.getElementById('new-item-category');
+                select.innerHTML = '';
+                categories.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    select.appendChild(option);
+                });
+            });
         document.getElementById('add-item-modal').style.display = 'flex';
     }
     function closeAddItemModal() {
@@ -132,6 +159,72 @@
             if (data.success) {
                 alert('刪除成功！');
                 closeDeleteItemModal();
+                setTimeout(function(){ location.reload(); }, 500);
+            } else {
+                alert('刪除失敗：' + (data.msg||'未知錯誤'));
+            }
+        })
+        .catch(function(){ alert('刪除失敗，請檢查網路'); });
+    }
+    function showAddCategoryModal() {
+        document.getElementById('add-category-modal').style.display = 'flex';
+    }
+    function closeAddCategoryModal() {
+        document.getElementById('add-category-modal').style.display = 'none';
+    }
+    function submitNewCategory() {
+        const name = document.getElementById('new-category-name').value.trim();
+        if (!name) { alert('請輸入分類名稱'); return; }
+        fetch('/api/categories', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('新增分類成功！');
+                closeAddCategoryModal();
+                setTimeout(function(){ location.reload(); }, 500);
+            } else {
+                alert('新增失敗：' + (data.msg||'未知錯誤'));
+            }
+        })
+        .catch(function(){ alert('新增失敗，請檢查網路'); });
+    }
+    function showDeleteCategoryModal() {
+        // 只顯示有商品的分類
+        fetch('/api/items')
+            .then(res => res.json())
+            .then(items => {
+                const cats = Array.from(new Set(items.map(i => i.category).filter(Boolean)));
+                const select = document.getElementById('delete-category-select');
+                select.innerHTML = '';
+                cats.forEach(cat => {
+                    const option = document.createElement('option');
+                    option.value = cat;
+                    option.textContent = cat;
+                    select.appendChild(option);
+                });
+                document.getElementById('delete-category-modal').style.display = 'flex';
+            });
+    }
+    function closeDeleteCategoryModal() {
+        document.getElementById('delete-category-modal').style.display = 'none';
+    }
+    function submitDeleteCategory() {
+        const select = document.getElementById('delete-category-select');
+        const cat = select.value;
+        if (!cat) { alert('請選擇要刪除的分類'); return; }
+        if (!confirm('確定要刪除分類「' + cat + '」及其所有商品嗎？')) return;
+        fetch('/api/categories/' + encodeURIComponent(cat), {
+            method: 'DELETE'
+        })
+        .then(res => res.json())
+        .then(data => {
+            if (data.success) {
+                alert('刪除成功！');
+                closeDeleteCategoryModal();
                 setTimeout(function(){ location.reload(); }, 500);
             } else {
                 alert('刪除失敗：' + (data.msg||'未知錯誤'));
