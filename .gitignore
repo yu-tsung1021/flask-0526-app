@@ -1,0 +1,17 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+
+# Virtual environment
+.venv/
+venv/
+ENV/
+env/
+
+# VSCode
+.vscode/
+
+# 系統檔案
+.DS_Store
+Thumbs.db
