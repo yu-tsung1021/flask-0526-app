@@ -61,6 +61,12 @@ class Category(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(20), unique=True, nullable=False)
 
+# 資料庫模型：老闆
+class Boss(db.Model):
+    id = db.Column(db.Integer, primary_key=True)
+    username = db.Column(db.String(100), unique=True, nullable=False)
+    password = db.Column(db.String(100), nullable=False)
+
 # 首頁
 @app.route('/')
 def index():
@@ -151,10 +157,17 @@ def staff():
 def staff_login():
     username = request.form.get('username')
     password = request.form.get('password')
-    if username == 'Tsung' and password == '123456':
-        staffs = Staff.query.all()
-        session['staff_code'] = username
-        return render_template('Boss.html', staffs=staffs)
+    # 先檢查是否為老闆帳號
+    boss = Boss.query.filter_by(username=username).first()
+    if boss:
+        if boss.password == password:
+            session['boss_code'] = username
+            staffs = Staff.query.all()
+            return render_template('Boss.html', staffs=staffs)
+        else:
+            flash('密碼錯誤')
+            return redirect(url_for('staff'))
+    # 不是老闆才查員工
     staff = Staff.query.filter_by(username=username, password=password).first()
     if staff:
         session['staff_code'] = staff.username
@@ -251,6 +264,8 @@ def delete_staff(username):
     staff = Staff.query.filter_by(username=username).first()
     if not staff:
         return jsonify({'success': False, 'msg': '找不到員工'})
+    if username == 'Tsung':
+        return jsonify({'success': False, 'msg': '老闆帳號不能被註銷'})
     db.session.delete(staff)
     db.session.commit()
     return jsonify({'success': True})
@@ -381,10 +396,30 @@ def delete_order(order_id):
         db.session.rollback()
         return jsonify({'success': False, 'msg': str(e)}), 500
 
+# 老闆更改密碼 API（獨立 Boss 表）
+@app.route('/boss/change-password', methods=['POST'])
+def boss_change_password():
+    if 'boss_code' not in session:
+        return jsonify({'success': False, 'message': '未授權，請重新登入'}), 401
+    data = request.get_json()
+    new_password = data.get('new_password')
+    if not new_password or len(new_password) < 4:
+        return jsonify({'success': False, 'message': '新密碼長度需至少4碼'}), 400
+    boss = Boss.query.filter_by(username=session['boss_code']).first()
+    if not boss:
+        return jsonify({'success': False, 'message': '找不到老闆帳號'}), 404
+    boss.password = new_password
+    db.session.commit()
+    return jsonify({'success': True})
+
 # 主程式入口
 if __name__ == '__main__':
     with app.app_context():
         db.create_all()
+        # 預設建立老闆帳號 Tsung/123456
+        if not Boss.query.filter_by(username='Tsung').first():
+            db.session.add(Boss(username='Tsung', password='123456'))
+            db.session.commit()
         if Item.query.count() == 0:
             items = [
                 Item(name='牛肉麵', price=120),

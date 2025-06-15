@@ -16,6 +16,7 @@
     <button class="boss-register-btn" style="top:240px;background:#e74c3c;right:32px;" onclick="showDeleteItemModal()">刪除餐品</button>
     <button class="boss-register-btn" style="top:300px;background:#27ae60;right:32px;" onclick="showAddCategoryModal()">新增分類</button>
     <button class="boss-register-btn" style="top:360px;background:#c0392b;right:32px;" onclick="showDeleteCategoryModal()">刪除分類</button>
+    <button id="show-change-password-btn" class="boss-register-btn" style="top:420px;background:#2980b9;right:32px;" onclick="showChangePasswordModal()">更改密碼</button>
     <!-- 新增菜品 Modal -->
     <div id="add-item-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
         <div style="background:#fff;padding:48px 36px 36px 36px;border-radius:18px;box-shadow:0 4px 32px #0003;text-align:center;min-width:340px;max-width:420px;width:92vw;">
@@ -55,19 +56,38 @@
             <button class="card-btn" style="background:#aaa;color:#fff;font-size:1.1em;padding:10px 32px;" onclick="closeDeleteCategoryModal()">取消</button>
         </div>
     </div>
+    <!-- 更改密碼 Modal -->
+    <div id="change-password-modal" style="display:none;position:fixed;z-index:1000;left:0;top:0;width:100vw;height:100vh;background:rgba(0,0,0,0.4);align-items:center;justify-content:center;">
+        <div style="background:#fff;padding:40px 32px 32px 32px;border-radius:16px;box-shadow:0 4px 32px #0003;text-align:center;min-width:320px;max-width:420px;width:92vw;">
+            <div style="font-size:1.3em;margin-bottom:18px;font-weight:bold;letter-spacing:2px;">更改密碼</div>
+            <input id="new-password" type="password" placeholder="新密碼" style="width:96%;margin-bottom:20px;font-size:1.1em;padding:10px 8px;"><br>
+            <button class="card-btn" style="font-size:1.1em;padding:10px 32px;margin-right:12px;background:#2980b9;color:#fff;" onclick="submitChangePassword()">送出</button>
+            <button class="card-btn" style="background:#aaa;color:#fff;font-size:1.1em;padding:10px 32px;" onclick="closeChangePasswordModal()">取消</button>
+            <div id="change-password-msg" style="margin-top:12px;color:#e74c3c;"></div>
+        </div>
+    </div>
     <h1>歡迎老闆 Tsung！</h1>
     <p>這裡是後台管理頁面。</p>
     {% if staffs %}
     <h2>員工名單</h2>
     <ul class="staff-list">
         {% for staff in staffs %}
-        <li class="staff-card">
-            <button class="card-btn" onclick="deleteStaff('{{ staff.username }}')" style="margin-left:8px;">註銷員工</button>
-            員工代碼:{{ staff.username }}（密碼：{{ staff.password }}）
-        </li>
+            {% if staff.username != 'Tsung' %}
+            <li class="staff-card">
+                <button class="card-btn" onclick="deleteStaff('{{ staff.username }}')" style="margin-left:8px;">註銷員工</button>
+                員工代碼:{{ staff.username }}（密碼：{{ staff.password }}）
+            </li>
+            {% endif %}
         {% endfor %}
     </ul>
     {% endif %}
+    <!-- 新增簡單的密碼更改表單 -->
+    <form id="change-password-form" style="display:none;margin:32px 0;">
+        <label for="new-password" style="font-size:1.1em;">新密碼：</label>
+        <input id="new-password" type="password" style="font-size:1.1em;padding:6px 10px;margin-right:10px;">
+        <button type="button" class="card-btn" style="background:#2980b9;color:#fff;" onclick="submitChangePassword()">送出</button>
+        <span id="change-password-msg" style="margin-left:16px;"></span>
+    </form>
     <script>
     function deleteStaff(username) {
         if (!confirm('確定要註銷員工 ' + username + ' 嗎？')) return;
@@ -75,14 +95,14 @@
             method: 'DELETE'
         })
         .then(res => res.json())
-        .then(data => {
+        .then(function(data) {
             if (data.success) {
                 window.location.href = '/staff-login-success'; // 跳回老闆頁面並刷新
             } else {
                 alert('刪除失敗：' + (data.msg || '未知錯誤'));
             }
         })
-        .catch(() => alert('刪除失敗，請檢查網路'));
+        .catch(function() { alert('刪除失敗，請檢查網路'); });
     }
     function showAddItemModal() {
         // 動態載入所有分類（不論有無商品）
@@ -231,6 +251,34 @@
             }
         })
         .catch(function(){ alert('刪除失敗，請檢查網路'); });
+    }
+    function showChangePasswordModal() {
+        document.getElementById('change-password-modal').style.display = 'flex';
+        document.getElementById('change-password-msg').innerText = '';
+        document.getElementById('new-password').value = '';
+    }
+    function closeChangePasswordModal() {
+        document.getElementById('change-password-modal').style.display = 'none';
+    }
+    function submitChangePassword() {
+        const newPwd = document.getElementById('new-password').value;
+        fetch('/boss/change-password', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ new_password: newPwd })
+        })
+        .then(res => res.json())
+        .then(function(data) {
+            const msg = document.getElementById('change-password-msg');
+            if(data.success) {
+                msg.style.color = '#27ae60';
+                msg.innerText = '密碼修改成功！';
+                setTimeout(closeChangePasswordModal, 1200);
+            } else {
+                msg.style.color = '#e74c3c';
+                msg.innerText = data.message || '密碼修改失敗';
+            }
+        });
     }
     </script>
 </body>
